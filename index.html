@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html>
+  
   <head>
-    <title>What</title>
+    <title>WebRTC Demo</title>
+    <script src='lib/adapter.js'></script>
   </head>
+  
   <body>
     <h1>
-      is
+      WebRTC Demo
     </h1>
-    <p>
-      this
-    </p>
+
+    <video id="caller" autoplay muted></video>
+    <video id="callee" autoplay muted></video>
+
+    <button id="begin">Begin</button>
+    <button id="end">End</button>
+
+    <script src="code/engine.js"></script>
+
   </body>
+
 </html>
