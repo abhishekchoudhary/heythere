@@ -1,87 +1,77 @@
-var constraints = {video: true};
+var constraints = {video:true};
 
 var callerVideo = document.getElementById("caller");
 var calleeVideo = document.getElementById("callee");
 
-var localStream, localPC, remotePC;
-  
-var startButton = document.getElementById("begin");
-var endButton = document.getElementById("end");
+var localStream, localPeerConnection, remotePeerConnection;
+
+var startButton = document.getElementById("startButton");
+var endButton = document.getElementById("endButton");
 
 startButton.disabled = false;
-startButton.onclick = begin;
+startButton.onclick = start;
 endButton.disabled = true;
 endButton.onclick = end;
 
-getUserMedia(constraints, gotStream, errorCallback);
+getUserMedia(constraints, gotStream,function(error) {console.log("getUserMedia error: ", error);});
 
-function gotStream(input)
-{
-  callerVideo.src = URL.createObjectURL(input);
-  callerVideo = input;
-  callerVideo.play();
+function gotStream(stream){
+  callerVideo.src = URL.createObjectURL(stream);
+  localStream = stream;
+  callButton.disabled = false;
+}
+
+function start() {
+  startButton.disabled = true;
+  endButton.disabled = false;
+
+  var servers = null;
+
+  localPeerConnection = new RTCPeerConnection(servers);
+  localPeerConnection.onicecandidate = gotLocalIceCandidate;
+
+  remotePeerConnection = new RTCPeerConnection(servers);
+  remotePeerConnection.onicecandidate = gotRemoteIceCandidate;
+  remotePeerConnection.onaddstream = gotRemoteStream;
+
+  localPeerConnection.addStream(localStream);
+  localPeerConnection.createOffer(gotLocalDescription,handleError);
+}
+
+function gotLocalDescription(description){
+  localPeerConnection.setLocalDescription(description);
+  remotePeerConnection.setRemoteDescription(description);
+  remotePeerConnection.createAnswer(gotRemoteDescription,handleError);
+}
+
+function gotRemoteDescription(description){
+  remotePeerConnection.setLocalDescription(description);
+  localPeerConnection.setRemoteDescription(description);
+}
+
+function end() {
+  localPeerConnection.close();
+  remotePeerConnection.close();
+  localPeerConnection = null;
+  remotePeerConnection = null;
+  endButton.disabled = true;
+  startButton.disabled = false;
 }
 
 function gotRemoteStream(event){
   calleeVideo.src = URL.createObjectURL(event.stream);
-  calleeVideo.play();
 }
 
-function begin()
-{
-  startButton.disabled = true;
-  endButton.disabled = false;
-
-  var server = null;
-  localPC = new RTCPeerConnection(server);
-  localPC.onicecandidate = gotLocalIceCandidate;
-  remotePC = new RTCPeerConnection(server);
-  remotePC.onicecandidate = gotRemoteIceCandidate;
-  
-  remotePC.onaddstream = gotRemoteStream;
-  localPC.addStream(localStream);
-  localPC.createOffer(gotLocalDescription,errorCallback);
-}
-
-function end()
-{
-  localPC.close();
-  remotePC.close();
-  startButton.disabled = false;
-  endButton.disabled = true;
-}
-
-function gotLocalDescription(description)
-{
-  localPC.setLocalDescription(description);
-  remotePC.setRemoteDescription(description);
-  remotePC.createAnswer(gotRemoteDescription,errorCallback);
-}
-
-function gotRemoteDescription(description){
-    remotePC.setLocalDescription(description);
-    localPC.setRemoteDescription(description);
-}
-
-
-function gotLocalIceCandidate(event)
-{
-  if (event.candidate)
-  {
-    remotePC.addIceCandidate(new RTCIceCandidate(event.candidate));
+function gotLocalIceCandidate(event){
+  if (event.candidate) {
+    remotePeerConnection.addIceCandidate(new RTCIceCandidate(event.candidate));
   }
 }
 
-function gotRemoteIceCandidate(event)
-{
-  if (event.candidate)
-  {
-    localPC.addIceCandidate(new RTCIceCandidate(event.candidate));
+function gotRemoteIceCandidate(event){
+  if (event.candidate) {
+    localPeerConnection.addIceCandidate(new RTCIceCandidate(event.candidate));
   }
 }
 
-
-function errorCallback(error)
-{
-  console.log("Error: ", error);
-}
+function handleError(){}
